@@ -1,7 +1,6 @@
-version: "3"
+version: '3'
 
-services:  
-
+services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0
     container_name: elasticsearch
@@ -9,7 +8,7 @@ services:
       - node.name=elasticsearch
       - cluster.name=es-docker-cluster
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
       - http.cors.enabled=true
       - http.cors.allow-origin="*"
       - discovery.type=single-node
@@ -21,9 +20,9 @@ services:
       - ./elasticsearch_data:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
-    networks: 
-        - observability
-   
+    networks:
+      - observability
+
   kibana:
     image: docker.elastic.co/kibana/kibana:7.13.0
     container_name: kibana
@@ -32,39 +31,47 @@ services:
     environment:
       ELASTICSEARCH_URL: http://elasticsearch:9200
       ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
-    networks: 
-        - observability
+    networks:
+      - observability
 
   metricbeat:
     image: docker.elastic.co/beats/metricbeat:7.13.0
     container_name: metricbeat
     user: root
-    volumes:      
+    volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./beats/metric/entrypoint.sh:/usr/local/bin/entrypoint.sh
       - ./beats/metric/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml
+    entrypoint: ['/usr/local/bin/entrypoint.sh']
     restart: on-failure
-    networks: 
+    networks:
       - observability
 
   heartbeat:
     image: docker.elastic.co/beats/heartbeat:7.13.0
     container_name: heartbeat
-    volumes:      
-    - ./beats/heartbeat/heartbeat.yml:/usr/share/heartbeat/heartbeat.yml
-    environment: 
-    - setup.kibana.host=kibana:5601
-    networks: 
+    user: root
+    volumes:
+      - ./beats/heartbeat/entrypoint.sh:/usr/local/bin/entrypoint.sh
+      - ./beats/heartbeat/heartbeat.yml:/usr/share/heartbeat/heartbeat.yml
+    entrypoint: ['/usr/local/bin/entrypoint.sh']
+    environment:
+      - setup.kibana.host=kibana:5601
+    networks:
       - observability
 
   apm:
     image: docker.elastic.co/apm/apm-server-oss:7.13.0
     container_name: apm
-    volumes:      
-    - ./apm/apm-server.yml:/usr/share/apm-server/apm-server.yml
+    user: root
+    volumes:
+      - ./apm/entrypoint.sh:/usr/local/bin/entrypoint.sh
+      - ./apm/apm-server.yml:/usr/share/apm-server/apm-server.yml
+    entrypoint: ['/usr/local/bin/entrypoint.sh']
     ports:
-      - "8200:8200"
+      - '8200:8200'
     restart: on-failure
-    networks: 
+    networks:
       - observability
 
 networks:
